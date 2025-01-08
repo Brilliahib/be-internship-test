@@ -109,27 +109,39 @@ class EmployeeController extends Controller
             );
         }
 
-        $validated = $request->validate([
+        $validationRules = [
             'image' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:15|unique:employees,phone,' . $id,
-            'division' => 'required|exists:divisions,id',
-            'position' => 'required|string|max:255',
-        ]);
+            'name' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:15|unique:employees,phone,' . $id,
+            'division' => 'nullable|exists:divisions,id',
+            'position' => 'nullable|string|max:255',
+        ];
 
-        Log::info('Employee data: ', ['employee' => $employee]);
+        $validated = $request->validate($validationRules);
+
+        Log::info('Validated data:', $validated);
+
+        if ($request->has('name')) {
+            $employee->name = $validated['name'];
+        }
+        if ($request->has('phone')) {
+            $employee->phone = $validated['phone'];
+        }
+        if ($request->has('division')) {
+            $employee->division_id = $validated['division'];
+        }
+        if ($request->has('position')) {
+            $employee->position = $validated['position'];
+        }
 
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('employees', 'public');
             $employee->image = Storage::url($imagePath);
         }
 
-        $employee->name = $validated['name'];
-        $employee->phone = $validated['phone'];
-        $employee->division_id = $validated['division'];
-        $employee->position = $validated['position'];
-
         $employee->save();
+
+        Log::info('Updated employee:', ['employee' => $employee]);
 
         return response()->json([
             'status' => 'success',
